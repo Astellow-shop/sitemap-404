@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculateur CESU – Coût réel & Crédit d'impôt</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+        :root {
+            --background-color: #f4f7f6;
+            --card-background-color: #ffffff;
+            --text-color: #333;
+            --accent-color: #007bff;
+            --accent-color-dark: #0056b3;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0,0,0,0.05);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            font-size: 16px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+        .card {
+            background-color: var(--card-background-color);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            border: 1px solid var(--border-color);
+        }
+        h1, h2 {
+            color: var(--accent-color);
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 30px;
+        }
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        .form-text {
+            font-size: 0.9em;
+            color: #6c757d;
+            padding-left: 5px;
+        }
+        .result-card h2 {
+            margin-bottom: 30px;
+        }
+        .verdict-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .verdict-item {
+            text-align: center;
+        }
+        .verdict-item span {
+            font-size: 1em;
+            color: #666;
+            display: block;
+        }
+        .verdict-item strong {
+            font-size: 2em;
+            font-weight: 600;
+            color: var(--text-color);
+            display: block;
+        }
+        .verdict-item.final-cost strong {
+            color: var(--accent-color);
+            font-size: 2.8em;
+        }
+        .verdict-operator {
+            font-size: 2.5em;
+            color: var(--accent-color);
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .summary {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        .summary strong {
+            color: var(--accent-color);
+        }
+        #chart-container {
+            margin-bottom: 20px;
+        }
+        .export-button {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        .export-button:hover {
+            background-color: var(--accent-color-dark);
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            body {
+                padding: 0;
+                font-size: 14px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media print {
+            body { padding: 0; font-size: 12pt; }
+            .container { grid-template-columns: 1fr; box-shadow: none; }
+            .card { box-shadow: none; border: 1px solid var(--border-color); }
+            .export-button, h1, h2 { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Calculateur CESU – Coût réel & Crédit d'impôt</h1>
+
+        <!-- Colonne des Paramètres -->
+        <div class="card">
+            <h2><i class="fas fa-cogs"></i> Paramètres</h2>
+            <div class="form-group">
+                <label for="netRate"><i class="fas fa-euro-sign"></i> Tarif NET horaire du salarié</label>
+                <input type="number" id="netRate" value="25" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="hoursPerWeek"><i class="fas fa-clock"></i> Heures / semaine</label>
+                <input type="number" id="hoursPerWeek" value="2" step="0.1">
+            </div>
+            <div class="form-group">
+                <label for="weeksPerYear"><i class="fas fa-calendar-week"></i> Semaines / an</label>
+                <input type="number" id="weeksPerYear" value="45" step="1">
+            </div>
+            <div class="form-group">
+                <label for="category"><i class="fas fa-briefcase"></i> Catégorie d'activité</label>
+                <select id="category">
+                    <option value="bricolage">Petit bricolage</option>
+                    <option value="jardinage">Petit jardinage</option>
+                    <option value="autres">Ménage, garde d'enfants, etc.</option>
+                </select>
+                <small id="category-cap-info" class="form-text text-muted"></small>
+            </div>
+            <div class="form-group">
+                <label for="globalCap"><i class="fas fa-file-contract"></i> Plafond de dépenses</label>
+                <select id="globalCap">
+                    <option value="12000">12000 (cas général)</option>
+                    <option value="15000">15000 (1ère année)</option>
+                    <option value="18000">18000 (1ère année + majorations)</option>
+                    <option value="20000">20000 (invalidité)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="exoneration"><i class="fas fa-leaf"></i> Exonération (si applicable)</label>
+                <select id="exoneration">
+                    <option value="none">Aucune</option>
+                    <option value="70plus">Employeur de +70 ans</option>
+                    <option value="handicap">Handicap (APA/PCH)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="netIncome"><i class="fas fa-file-invoice-dollar"></i> Revenu annuel net</label>
+                <input type="number" id="netIncome" value="35000" step="100">
+            </div>
+        </div>
+
+        <!-- Colonne des Résultats -->
+        <div class="card result-card">
+            <h2><i class="fas fa-magic"></i> Votre coût réel avec CESU+</h2>
+            <div class="verdict-container">
+                <div class="verdict-item">
+                    <span>Coût horaire total</span>
+                    <strong id="hourlyEmployer">0.00 €</strong>
+                </div>
+                <div class="verdict-operator">-</div>
+                <div class="verdict-item">
+                    <span>Avance immédiate / heure</span>
+                    <strong id="hourlyCredit">0.00 €</strong>
+                </div>
+                <div class="verdict-operator">=</div>
+                <div class="verdict-item final-cost">
+                    <span>Votre coût horaire réel</span>
+                    <strong id="hourlyAfter">0.00 €</strong>
+                </div>
+            </div>
+            <div id="warning-container" class="warning" style="display: none;"></div>
+            <div class="summary">
+                <p>Pour un salarié qui demande <strong id="summaryNetRate">25.00 €</strong>/h, votre coût réel n'est que de <strong id="summaryHourlyAfter">0.00 €</strong>/h.</p>
+                <p>Vous économisez <strong id="yearlySaving">0.00 €</strong> par an sur vos impôts.</p>
+            </div>
+            <div id="chart-container">
+                <canvas id="costChart"></canvas>
+            </div>
+            <button class="export-button" onclick="window.print()"><i class="fas fa-file-pdf"></i> Exporter en PDF</button>
+        </div>
+
+        
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const config = {
+            netToBrut: 0.78,
+            employerPct: 0.36,
+            catCaps: {
+                bricolage: 500,
+                jardinage: 5000,
+                autres: Infinity
+            },
+            exonerationRates: {
+                none: 0.36,
+                '70plus': 0.24,
+                handicap: 0.20
+            }
+        };
+
+        // --- TAX CALCULATION ---
+        function calculateTax(income) {
+            if (income <= 11294) return 0;
+            if (income <= 28797) return (income - 11294) * 0.11;
+            if (income <= 82341) return (28797 - 11294) * 0.11 + (income - 28797) * 0.30;
+            if (income <= 177106) return (28797 - 11294) * 0.11 + (82341 - 28797) * 0.30 + (income - 82341) * 0.41;
+            return (28797 - 11294) * 0.11 + (82341 - 28797) * 0.30 + (177106 - 82341) * 0.41 + (income - 177106) * 0.45;
+        }
+
+        // --- PURE CALCULATION FUNCTION ---
+        function computeQuote(params) {
+            if (!params.netRate || params.netToBrut <= 0) {
+                return createZeroResult();
+            }
+
+            const hourlyEmployer = (params.netRate / params.netToBrut) * (1 + params.employerPct);
+            const hoursYear = (params.hoursPerWeek || 0) * (params.weeksPerYear || 0);
+            const costTotal = hourlyEmployer * hoursYear;
+
+            const catCap = config.catCaps[params.category] || Infinity;
+            const globalCap = params.globalCap || 0;
+            const eligible = Math.min(costTotal, catCap, globalCap);
+            const annualCredit = eligible * 0.50;
+            const isCapped = costTotal > eligible;
+
+            const realCost = costTotal - annualCredit;
+            
+            const taxBefore = calculateTax(params.netIncome);
+            const yearlySaving = taxBefore - Math.max(0, taxBefore - annualCredit);
+
+            const hourlyAfter = hoursYear > 0 ? realCost / hoursYear : 0;
+            const hourlyCredit = hourlyEmployer - hourlyAfter;
+
+            return {
+                costTotal,
+                realCost,
+                yearlySaving,
+                hourlyEmployer,
+                hourlyAfter,
+                hourlyCredit,
+                isCapped
+            };
+        }
+        
+        function createZeroResult() {
+            return {
+                costTotal: 0, realCost: 0, yearlySaving: 0,
+                hourlyEmployer: 0, hourlyAfter: 0, hourlyCredit: 0,
+                isCapped: false
+            };
+        }
+
+
+        // --- DOM MANIPULATION & UI LOGIC ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = {
+                netRate: document.getElementById('netRate'),
+                hoursPerWeek: document.getElementById('hoursPerWeek'),
+                weeksPerYear: document.getElementById('weeksPerYear'),
+                category: document.getElementById('category'),
+                globalCap: document.getElementById('globalCap'),
+                exoneration: document.getElementById('exoneration'),
+                netIncome: document.getElementById('netIncome'),
+            };
+
+            const outputs = {
+                hourlyEmployer: document.getElementById('hourlyEmployer'),
+                hourlyCredit: document.getElementById('hourlyCredit'),
+                hourlyAfter: document.getElementById('hourlyAfter'),
+                summaryNetRate: document.getElementById('summaryNetRate'),
+                summaryHourlyAfter: document.getElementById('summaryHourlyAfter'),
+                yearlySaving: document.getElementById('yearlySaving'),
+                warningContainer: document.getElementById('warning-container'),
+                categoryCapInfo: document.getElementById('category-cap-info'),
+            };
+
+            const ctx = document.getElementById('costChart').getContext('2d');
+            const costChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Coût total annuel', 'Coût réel annuel'],
+                    datasets: [{
+                        label: 'Euros (€)',
+                        data: [0, 0],
+                        backgroundColor: ['#ff6384', '#36a2eb'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Comparaison des coûts annuels' }
+                    },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            function updateUI() {
+                const selectedExoneration = inputs.exoneration.value;
+                const employerPct = config.exonerationRates[selectedExoneration];
+
+                const params = {
+                    netRate: parseFloat(inputs.netRate.value) || 0,
+                    hoursPerWeek: parseFloat(inputs.hoursPerWeek.value) || 0,
+                    weeksPerYear: parseFloat(inputs.weeksPerYear.value) || 0,
+                    category: inputs.category.value,
+                    globalCap: parseInt(inputs.globalCap.value, 10),
+                    netIncome: parseFloat(inputs.netIncome.value) || 0,
+                    netToBrut: config.netToBrut,
+                    employerPct: employerPct
+                };
+
+                const results = computeQuote(params);
+
+                outputs.hourlyEmployer.textContent = results.hourlyEmployer.toFixed(2) + ' €';
+                outputs.hourlyCredit.textContent = results.hourlyCredit.toFixed(2) + ' €';
+                outputs.hourlyAfter.textContent = results.hourlyAfter.toFixed(2) + ' €';
+                outputs.summaryNetRate.textContent = (params.netRate || 0).toFixed(2) + ' €';
+                outputs.summaryHourlyAfter.textContent = results.hourlyAfter.toFixed(2) + ' €';
+                outputs.yearlySaving.textContent = results.yearlySaving.toFixed(2) + ' €';
+
+                const catCap = config.catCaps[params.category];
+                if (catCap && isFinite(catCap)) {
+                    outputs.categoryCapInfo.textContent = `Plafond de dépenses pour cette activité : ${catCap} €/an (soit ${catCap * 0.5} € de crédit d'impôt max).`;
+                } else {
+                    outputs.categoryCapInfo.textContent = 'Pas de plafond de dépenses spécifique pour cette activité.';
+                }
+
+                if (results.isCapped) {
+                    outputs.warningContainer.innerHTML = `<strong>Attention :</strong> Le plafond annuel du crédit d'impôt est atteint. Le coût horaire réel est donc une moyenne calculée sur l'année.`;
+                    outputs.warningContainer.style.display = 'block';
+                } else {
+                    outputs.warningContainer.style.display = 'none';
+                }
+
+                // Update chart
+                costChart.data.datasets[0].data[0] = results.costTotal;
+                costChart.data.datasets[0].data[1] = results.realCost;
+                costChart.update();
+            }
+
+            Object.values(inputs).forEach(input => {
+                input.addEventListener('input', updateUI);
+            });
+            
+            // Initial calculation
+            updateUI();
+        });
+        
+        // Silently ignore external errors like MetaMask connection failure
+        window.addEventListener('error', (event) => {
+            if (event.message.includes('MetaMask')) {
+                console.log('MetaMask connection error ignored.');
+                event.preventDefault();
+            }
+        });
+
+    </script>
+</body>
+</html>
